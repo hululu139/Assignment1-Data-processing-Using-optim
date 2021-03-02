@@ -1,0 +1,445 @@
+---
+title: "Assignment1"
+author: "Luyi Huang"
+date: "2021/2/25"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(GGally)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(car)
+library(knitr)
+library(devtools)
+```
+
+## Exercise 1 Reading the data
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+stu=read.csv("D:/ECON613/Assignments/A1/dat/datstu.csv")
+jss=read.csv("D:/ECON613/Assignments/A1/dat/datjss.csv")
+sss=read.csv("D:/ECON613/Assignments/A1/dat/datsss.csv")
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+summary(stu)
+```
+Overall, there are 340823 students in the dataset, there are 179886 missing score in the dataset. 
+
+```{r}
+st<-stu %>%
+  filter()
+dat<- data.frame(stack(stu[5:10]))
+length(unique(dat$values))
+```
+
+There are 641 schools.
+```{r}
+dat<- data.frame(stack(stu[11:16]))
+length(unique(dat$values))-1
+```
+There are 32 programs. 
+```{r}
+#replace null in program with NA
+stu[stu == ""] = NA
+```
+
+
+```{r}
+#paste to the choice
+cols <- c( 'schoolcode1' , 'choicepgm1' )
+# create a new column `x` with the three columns collapsed together
+stu$paste1 <- apply( stu[ , cols ] , 1 , paste , collapse = "-" )
+cols <- c( 'schoolcode2' , 'choicepgm2' )
+# create a new column `x` with the three columns collapsed together
+stu$paste2 <- apply( stu[ , cols ] , 1 , paste , collapse = "-" )
+
+cols <- c( 'schoolcode3' , 'choicepgm3' )
+# create a new column `x` with the three columns collapsed together
+stu$paste3 <- apply( stu[ , cols ] , 1 , paste , collapse = "-" )
+
+cols <- c( 'schoolcode4' , 'choicepgm4' )
+# create a new column `x` with the three columns collapsed together
+stu$paste4 <- apply( stu[ , cols ] , 1 , paste , collapse = "-" )
+
+cols <- c( 'schoolcode5' , 'choicepgm5' )
+# create a new column `x` with the three columns collapsed together
+stu$paste5 <- apply( stu[ , cols ] , 1 , paste , collapse = "-" )
+
+cols <- c( 'schoolcode6' , 'choicepgm6' )
+# create a new column `x` with the three columns collapsed together
+stu$paste6 <- apply( stu[ , cols ] , 1 , paste , collapse = "-" )
+```
+```{r}
+#replace choices that only have school and NA with NA
+stu$paste1[which(str_sub(stu$paste1,-2,-1)=="NA") ] <- NA
+stu$paste2[which(str_sub(stu$paste2,-2,-1)=="NA") ] <- NA
+stu$paste3[which(str_sub(stu$paste3,-2,-1)=="NA") ] <- NA
+stu$paste4[which(str_sub(stu$paste4,-2,-1)=="NA")] <- NA
+stu$paste5[which(str_sub(stu$paste5,-2,-1)=="NA")] <- NA
+stu$paste6[which(str_sub(stu$paste6,-2,-1)=="NA") ] <- NA
+stu$paste1[which(str_sub(stu$paste1,1,2)=="NA") ] <- NA
+stu$paste2[which(str_sub(stu$paste2,1,2)=="NA") ] <- NA
+stu$paste3[which(str_sub(stu$paste3,1,2)=="NA")] <- NA
+stu$paste4[which(str_sub(stu$paste4,1,2)=="NA")] <- NA
+stu$paste5[which(str_sub(stu$paste5,1,2)=="NA")] <- NA
+stu$paste6[which(str_sub(stu$paste6,1,2)=="NA") ] <- NA
+
+```
+```{r}
+dat<- data.frame(stack(stu[19:ncol(stu)]))
+length(unique(unlist(na.omit((stu[19:ncol(stu)])))))
+```
+
+There are 2759 choices for students in the dataset. 
+```{r}
+cols=c('schoolcode1','schoolcode2','schoolcode3','schoolcode4','schoolcode5','schoolcode6')
+ll=stu
+ll <- cbind(ll, count1 = apply(ll[,cols], 1, function(x) sum(duplicated(na.omit(x)),na.rm=TRUE)))
+count111<-ll %>%
+  filter(count1>=1)
+length(count111$X)
+```
+There are overall 120071 students that apply to the same school. 
+```{r}
+cols=c('paste1','paste2','paste3','paste4','paste5','paste6')
+ll <- cbind(ll, count2 = apply(ll[,cols], 1, function(x) length(na.omit(x))))
+count12<-ll %>%
+  filter(count2<6)
+length(count12$X)
+```
+There are 21001 students that apply to less than 6 different choices.
+## Exercise 2 Data
+```{r}
+stu1=read.csv("D:/ECON613/Assignments/A1/dat/datstu.csv")
+stu1<- drop_na(stu1)
+```
+```{r}
+#adding admission information
+for(i in 1:length(stu1$rankplace)) {       # for-loop over rows
+  n <- stu1[i, 18]
+  if(n <7){
+    stu1$admission[i]<-stu1[i,n+4]
+    stu1$program[i]<-stu1[i,n+10]}
+    
+  else{
+       stu1$admission[i]="no admission"
+       stu1$program[i]="no program"
+  }
+}
+```
+```{r}
+stu1<-stu1[which(stu1$admission!="no admission"),]
+school<-stu1 %>%
+  group_by(admission,program) %>%
+  dplyr::summarise(cutoff=min(score),
+                   size=n_distinct(X),
+            quality=(mean(score)))
+```
+```{r}
+colnames(school)[1]<-"schoolcode"
+head(school,20)
+```
+```{r}
+sss$schoolcode=as.character(sss$schoolcode)
+ssu1=sss[-c(1)]
+ssu1=drop_na(ssu1)
+school=left_join(school, unique(ssu1), by = c("schoolcode"="schoolcode"))
+head(school,20)
+```
+## Exercise 3 Distance
+```{r}
+ssu1=unique(sss[-c(1,2)])
+ssu1=drop_na(ssu1)
+jsu1=drop_na(jss[-c(1)])
+dis=left_join(stu1, jsu1, by = c("jssdistrict"="jssdistrict"))
+```
+
+```{r}
+dis=left_join(dis, ssu1, by = c("admission"="schoolcode"))
+```
+
+```{r}
+dis$dis=sqrt((69.172*(dis$ssslong-dis$point_x)*cos(dis$point_y/57.3))^2+(69.712*(dis$ssslat-dis$point_y))^2)
+```
+```{r}
+head(dis$dis,20)
+```
+
+## Exercise 4 Descriptive Characteristics
+```{r}
+c=school[c(1,2,3,4,5)]
+cols <- c( 'admission' , 'program' )
+# create a new column `x` with the three columns collapsed together
+stu1$admissionchoice <- apply( stu1[ , cols ] , 1 , paste , collapse = "-" )
+cols <- c( 'schoolcode' , 'program' )
+c$admissionchoice <- apply( c[ , cols ] , 1 , paste , collapse = "-" )
+sch=left_join(stu1, c, by = c("admissionchoice"="admissionchoice"))
+```
+```{r}
+head(sch,20)
+```
+```{r}
+dist=dis[c(1,26)]
+sch=left_join(sch, dist, by = c("X"="X"))
+head(sch)
+```
+```{r}
+sch %>%
+    group_by(rankplace) %>%
+    dplyr::summarise(cutoff_mean=mean(cutoff),
+                   cutoff_sd=sd(cutoff),
+                   quality_mean=mean(quality),
+                   quality_sd=sd(quality),
+        distance_mean=mean(dis),
+              distance_sd=sd(dis) )
+```
+```{r}
+sch<-sch %>% group_by(rankplace) %>%
+mutate(qurtile=ntile(score, 4))
+
+```
+```{r}
+c=sch %>%
+    group_by(rankplace, qurtile) %>%
+    dplyr::summarise(cutoff_mean=mean(cutoff),
+                   cutoff_sd=sd(cutoff),
+                   quality_mean=mean(quality),
+                   quality_sd=sd(quality),
+        distance_mean=mean(dis),
+              distance_sd=sd(dis) )
+```
+```{r}
+c
+```
+
+
+
+
+## Exercise 5 Data Creation
+```{r}
+set.seed(11)
+x_1=runif(10000, min = 1, max = 3)
+x_2=rgamma(10000, shape=3,scale = 2)
+x_3=rbinom(10000, size=1, prob=0.3)
+epsilon=rnorm(10000,2,1)
+X=cbind(x_1,x_2,x_3,epsilon)
+```
+
+```{r}
+X1=as.data.frame(X)
+```
+``` {r}
+X1=X1%>% mutate(y=0.5+1.2*x_1-0.9*x_2+0.1*x_3+epsilon) %>%
+       mutate(ydum = case_when(y>mean(y) ~ 1, 
+                             TRUE ~ 0))
+```
+
+
+## Exercise 6 OLS
+```{r}
+#correlation
+cor(X1$x_1,X1$y)
+```
+The correlation is 0.21, which is quite different from 1.2.
+```{r}
+beta_1=cov(X1$x_1,X1$y)/var(X1$x_1)
+beta_2=cov(X1$x_2,X1$y)/var(X1$x_2)
+beta_3=cov(X1$x_3,X1$y)/var(X1$x_3)
+alpha=mean(X1$y)-beta_1*mean(X1$x_1)-beta_2*mean(X1$x_2)-beta_3*mean(X1$x_3)
+rbind(beta_1,beta_2,beta_3,alpha)
+```
+
+```{r}
+X2=X1[-c(4,5,6)]
+X2$intercept=1
+y=X1$y
+```
+```{r}
+ma=data.matrix(X2, rownames.force = NA)
+solve(t(ma) %*% ma) %*%t(ma)%*% y
+```
+```{r}
+sqrt(diag(1*solve((t(ma) %*% ma))))
+```
+
+## Exercise 7 Discrete Choice
+consider probit
+using package for check
+```{r}
+X4=X1[-c(4,5)]
+myprobit <- glm(ydum ~ x_1+x_2+x_3, family = binomial(link = "probit"), 
+    data = X4)
+myprobit
+```
+optim:
+```{r}
+Probit_LL <- function(y,x,par) {
+    Phi = pnorm(x %*% par)
+    phi = dnorm(x %*% par)
+
+    n = length(y) 
+    k = length(par)
+
+    # Computing the log-likelihood
+    f = sum(y*log(Phi)) + sum((1-y)*log(1-Phi))
+    f = -f
+
+    return(f)
+}
+Probit_LL_g <- function (y,x,par) {
+    Phi = pnorm(x %*% par) # Phi is Cumulative probability
+    phi = dnorm(x %*% par) # phi is Probability Density
+
+    n = length(y)           # sample size
+    k = length(par)         # number of coefficients
+
+    g = t(matrix(rep(phi/Phi,k),nrow=n)*x) %*% y - 
+        t(matrix(rep(phi/(1-Phi),k),nrow=n)*x) %*% (1-y)
+    g = -g
+
+    return(g)
+} 
+```
+```{r}
+
+X <- as.matrix(cbind(1,X4[c(1:3)]))
+Y<-as.matrix(X4[c(4)])
+beta <-c( 0.1, 0.1, 0.1,0.1)
+result <- optim(par = beta, Probit_LL, y = Y, x = X, gr = Probit_LL_g, 
+                method = "BFGS",  hessian=TRUE)
+```
+```{r}
+result
+```
+consider logit
+```{r}
+mylogit <- glm(ydum ~ x_1+x_2+x_3, family = binomial(link = "logit"), 
+    data = X4)
+mylogit
+```
+optim
+```{r}
+negLogLik = function(beta){
+ -sum(-Y*log(1 + exp(-(X%*%beta))) - (1-Y)*log(1 + exp(X%*%beta)))
+}
+logistic_opt = optim(par = beta, negLogLik, hessian=TRUE, method = "BFGS")
+```
+```{r}
+logistic_opt
+```
+linear model:
+```{r}
+compCost<-function(X, y, par){  
+  m <- length(y)
+  J <- sum((X%*%par- y)^2)/(2*m)
+return(J) 
+}
+theta<-c( 0.1, 0.1, 0.1,0.1)
+```
+```{r}
+optim(par = theta, fn = compCost, X = X, y = Y, method = "BFGS")
+
+```
+
+```{r}
+mylinear <- lm(ydum ~x_1+x_2+x_3 ,data = X4)
+mylinear
+```
+```{r}
+summary(mylinear)
+```
+```{r}
+summary(mylogit)
+```
+```{r}
+summary(myprobit)
+```
+The coeffcient for x_3 in probit and logit model are both insignificant while other coeffcients are statistically significant.  The model fit in linear probability model is not so good whill the other too has large deviance which means that the model of fit in these models are fine. However,  the coeffcient in linear probability model is quite similiar to the original parameter we used to calculate Y. Also, the coeff for logit and probit are quite similiar but we can guess that the marginal effect of these two models will be quite similiar to the OLS and also the parameters we used to generate the data. 
+
+
+
+## Exercise 8 Marginal Effects
+marginal effect of probit
+```{r}
+fav = mean(dnorm(predict(myprobit, type = "link")))
+marg =  as.matrix(fav * coef(myprobit))
+marg
+```
+```{r}
+gr = as.numeric(dnorm(predict(myprobit, type = "link")))
+vcv = solve(result$hessian)
+se = sqrt(t(marg) %*% vcv %*% marg)
+se
+```
+
+marginal effect of logit
+```{r}
+fav = mean(dnorm(predict(mylogit, type = "link")))
+marg =  as.matrix(fav * coef(mylogit))
+marg
+```
+the marginal effect on probability: 
+```{r}
+library(mfx)
+pro=probitmfx(formula = ydum ~ .,data = X4, atmean = FALSE)
+```
+SE for probit
+```{r}
+pro$mfxest
+```
+SE for logit:
+```{r}
+log=logitmfx(formula = ydum~ x_1+x_2+x_3,data = X4, atmean = FALSE)
+```
+```{r}
+log$mfxest
+```
+marginal effect and se for probit: 
+```{r}
+Y=X4$ydum
+xm = as.matrix(colMeans(X4))
+be=as.matrix(result$par)
+x1=as.matrix(cbind(1,X4[c(1:3)]))
+fxb= mean(dnorm(x1 %*% as.matrix(result$par)))
+mfx = data.frame(mfx=fxb*as.matrix(result$par), se=NA)
+vcv = solve(result$hessian)
+temp1 = apply(x1,2,function(x)length(table(x))==2)
+disch = names(temp1[temp1==TRUE])
+k1=4
+gr = apply(x1, 1, function(x){
+      as.numeric(as.numeric(dnorm(x %*% be))*(diag(k1) - as.numeric(x %*% be)*(be %*% t(x))))
+    })
+gr = matrix(apply(gr,1,mean),nrow=k1)
+mfx$se = sqrt(diag(gr %*% vcv %*% t(gr)))                
+mfx
+```
+marginal effect and se for logit
+```{r}
+Y=X4$ydum
+xm = as.matrix(colMeans(X4))
+be=as.matrix(logistic_opt$par)
+x1=as.matrix(cbind(1,X4[c(1:3)]))
+fxb= mean(dnorm(x1 %*% as.matrix(logistic_opt$par)))
+mfx = data.frame(mfx=fxb*as.matrix(logistic_opt$par), se=NA)
+vcv = solve(logistic_opt$hessian)
+temp1 = apply(x1,2,function(x)length(table(x))==2)
+disch = names(temp1[temp1==TRUE])
+k1=4
+gr = apply(x1, 1, function(x){
+      as.numeric(as.numeric(dnorm(x %*% be))*(diag(k1) - as.numeric(x %*% be)*(be %*% t(x))))
+    })
+gr = matrix(apply(gr,1,mean),nrow=k1)
+mfx$se = sqrt(diag(gr %*% vcv %*% t(gr)))                
+mfx
+```
+They results are quite similiar compared with the package. We can also see that the margianl effect is quite similar to the parameter we used to generate the data. 
